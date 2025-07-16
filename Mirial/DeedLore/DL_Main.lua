@@ -403,6 +403,7 @@ function SetItem(group,aname,ix)
 	DL_window.pageType:SetText( DL_Name(area) )
 	DL_window.nearButton:SetEnabled( true )
 	DL_window.headButton:SetEnabled( true )
+	DL_window.wayButton:SetEnabled( true )
 	if DL_Mwindow:IsVisible() then DL_Map() end
 end
 

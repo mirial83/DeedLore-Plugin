@@ -32,7 +32,6 @@ Map_set,Mnr = {},0
 DL_Window = class( Turbine.UI.Lotro.Window )
 
 function DL_Name(area)
-	if not area or not area.d then return "None" end
 	local name = area.d
 	if name:find(' ') then 
 		if name:sub(-1)==' ' then name = name:sub(1,-2) end
@@ -96,6 +95,7 @@ function DL_Area()
 	end
 	if DL_Mwindow:IsVisible() then DL_Map() end
 	DL_compass:SetVisible(false)
+	DL_way:SetVisible(false)
 	DL_checked = cgroup and cgroup[aname] or {}
 	DL_window.pageType:SetText( DL_Name(area) )
 	DL_window.itemMenu:SetText( "" )
@@ -104,6 +104,7 @@ function DL_Area()
 	DL_window.pageLoc:SetText( "" )
 	DL_Mwindow.dloc = nil
 	DL_window.headButton:SetEnabled( false )
+	DL_window.wayButton:SetEnabled( false )
 	DL_window.pageDesc:SetText( "" )
 	DL_window.tbl = area.p
 	DL_window.stl = area.s
@@ -506,19 +507,18 @@ function DL_Window:Constructor()
 		end
 		print(w.." map selected.")
 	end
-		-- Waypoint button
-	self.wayButton = AddField(self, Button, "Waypoint", {x=295,y=152}, {x=75,y=15} )
-	self.wayButton:SetEnabled( false )
-	local loc,desc,r = DL_Page(pages, self.itemMenu:GetText())
-	self.pageLoc:SetText( loc )
-	local slot = Turbine.UI.Lotro.Quickslot()
-	local sloc = loc:gsub(",", " ")
-	slot:SetParent( self.wayButton )
-    slot:SetPosition( 0,0 )
-    slot:SetOpacity( 0 )
-    slot:SetSize( 70,15 )
-    slot:SetShortcut(Turbine.UI.Lotro.Shortcut( Alias, "/way target"..sloc ))
-    slot:SetAllowDrop( false )
+-- Waypoint button
+self.wayButton = AddField(self, Button, "Waypoint", {x=295,y=152}, {x=75,y=15})
+self.wayButton:SetEnabled(false)
+self.wayButton.Click = function(sender, args)
+    local loc = self.pageLoc:GetText()
+    if #loc > 0 then
+        -- Update the hidden waypoint quickslot
+        DL_way.slot:SetShortcut(Turbine.UI.Lotro.Shortcut(Alias, "/way target "..loc))
+        -- Trigger the shortcut (since the quickslot is hidden)
+        DL_way.slot:Activate()
+    end
+end
 end
 DL_window = DL_Window()
 
@@ -626,6 +626,22 @@ function DL_Compass:MouseUp( args )
 end
 
 DL_compass = DL_Compass()
+
+DL_way = class(Turbine.UI.Lotro.Quickslot)
+function DL_way:Constructor()
+    Turbine.UI.Lotro.Quickslot.Constructor(self)
+    self:SetSize(1, 1)  -- Minimal size
+    self:SetOpacity(0)  -- Completely invisible
+    self:SetVisible(false)  -- Always hidden
+    
+    -- Create the hidden shortcut slot
+    self.slot = Turbine.UI.Lotro.Quickslot()
+    self.slot:SetParent(self)
+    self.slot:SetSize(1, 1)
+    self.slot:SetAllowDrop(false)
+    self.slot:SetShortcut(Turbine.UI.Lotro.Shortcut(Alias, ""))
+    self.slot:SetVisible(false)
+end
 
 DL_MWindow = class( Turbine.UI.Lotro.Window )
 Msize = 400
