@@ -32,12 +32,13 @@ Map_set,Mnr = {},0
 DL_Window = class( Turbine.UI.Lotro.Window )
 
 function DL_Name(area)
+	if not area or not area.d then return "None" end
 	local name = area.d
 	if name:find(' ') then 
 		if name:sub(-1)==' ' then name = name:sub(1,-2) end
 		return name
 	end
-	return name.." page"
+	return name.." item"
 end
 
 function FindMap(group,area)
@@ -155,8 +156,8 @@ function DL_rewards(str)
 end
 
 function DL_List(group,area,neg)
-	if group=="" then printe("Select a group.") return end
-	if area=="" then printe("Select an area.") return end
+	if group=="" then printe("Select an area.") return end
+	if area=="" then printe("Select a deed.") return end
 	local pages = Lore[group][area]
 	printh(DL_Name(pages).."s in "..group..":"..area)
 	local list,yx = {}, {}
@@ -182,17 +183,17 @@ end
 
 function DL_Window:Constructor()
 	Turbine.UI.Lotro.Window.Constructor( self )
-	self:SetText( "Lost Lore" )
-	self:SetSize( 300,311 )
+	self:SetText( "Deed Lore" )
+	self:SetSize( 400,311 )
 
 	-- Position the window near the top and left-center of the screen.
 	local pos = DL_Settings.pos1 or 
 				{ x=Turbine.UI.Display.GetWidth()/5, y=self:GetHeight()/2 }
 	self:SetPosition( pos.x, pos.y )
 
-	-- Group label and menu
-	AddField(self, Label, "Group:", {x=15,y=45}, {x=45,y=14} )
-	self.groupMenu = AddField(self, ScrollMenu, "", {x=65,y=44}, {x=210,y=20} )
+	-- Area label and menu
+	AddField(self, Label, "Area:", {x=20,y=45}, {x=75,y=14} )
+	self.groupMenu = AddField(self, ScrollMenu, "", {x=80,y=44}, {x=270,y=20} )
 	local action = function()
 		self.areaMenu:SetText( "" )
 		self.itemMenu:SetText( "" )
@@ -208,14 +209,15 @@ function DL_Window:Constructor()
 		DL_Mwindow.dloc = nil
 		self.headButton:SetEnabled( false )
 		self.pageDesc:SetText( "" )
+		self.wayButton:SetEnabled( false )
 	end
 	self.groupMenu.MenuBox.Click = function() 
 		self.groupMenu:BuildMenu(Groups,17,print,action,nil,GroupC) 
 	end
 
-	-- Area label and menu
-	AddField(self, Label, "Area:", {x=20,y=73}, {x=40,y=14} )
-	self.areaMenu = AddField(self, ScrollMenu, "", {x=65,y=72}, {x=210,y=20} )
+	-- Deed label and menu
+	AddField(self, Label, "Deed:", {x=20,y=73}, {x=75,y=14} )
+	self.areaMenu = AddField(self, ScrollMenu, "", {x=80,y=72}, {x=270,y=20} )
 	local action = function()
 		DL_Area()
 		if DL_Mwindow:IsVisible() then DL_Map() end
@@ -238,15 +240,15 @@ function DL_Window:Constructor()
 					table.insert(Area_list,name) 
 				end
 			end
-			if #Area_list<1 then printe("No usable areas.") return end
+			if #Area_list<1 then printe("No usable deeds.") return end
 			table.sort(Area_list)
 			self.areaMenu:BuildMenu(Area_list,15,print,action,nil,colors)
-		else printe("Select a group.") end
+		else printe("Select a deed.") end
 	end
 
 	-- Item label and menu
-	AddField(self, Label, "Item:", {x=20,y=101}, {x=40,y=14} )
-	self.itemMenu = AddField(self, ScrollMenu, "", {x=65,y=100}, {x=55,y=20} )
+	AddField(self, Label, "Item:", {x=20,y=101}, {x=75,y=14} )
+	self.itemMenu = AddField(self, ScrollMenu, "", {x=80,y=100}, {x=100,y=20} )
 	local action = function(args)
 		DL_Mwindow.dloc = nil
 		local pages = Lore[self.groupMenu:GetText()][self.areaMenu:GetText()]
@@ -260,13 +262,14 @@ function DL_Window:Constructor()
 		if desc then print(desc) end
 		self.itemMenu.r = r
 		self.headButton:SetEnabled( true )
+		self.wayButton:SetEnabled( true )
 		DL_compass.dot:SetVisible( false )
 		DL_compass.box:SetText( '' )
 	end
 	self.itemMenu.action = action
 	self.itemMenu.MenuBox.Click = function()
         local group = self.groupMenu:GetText()
-		if group=="" then printe("Select a group.") return end
+		if group=="" then printe("Select an area.") return end
         local area = self.areaMenu:GetText()
 		if area~="" then
 			local Loc_list = {}
@@ -275,11 +278,11 @@ function DL_Window:Constructor()
 			end
 			--self.itemMenu:BuildMenu(Loc_list,action,nil,print)
 			self.itemMenu:BuildMenu(Loc_list,15,print,action,nil)
-		else printe("Select an area.") end
+		else printe("Select a deed.") end
 	end
 
 	-- Create an Check List button
-	self.checkButton = AddField(self, Button, "Check List", {x=130,y=101}, {x=85,y=20} )
+	self.checkButton = AddField(self, Button, "Check List", {x=170,y=101}, {x=85,y=20} )
 	Mirial.Common.ToolTip(self.checkButton,0,-20,"Shift for name list",123)
 	self.checkButton:SetEnabled( false )
 	self.checkButton.Click = function( sender,args )
@@ -288,7 +291,7 @@ function DL_Window:Constructor()
 	end
 
 	-- Done check box
-	self.doneBox = AddField(self, CheckBox, "Done", {x=225,y=103}, {x=55,y=16} )
+	self.doneBox = AddField(self, CheckBox, "Done", {x=250,y=103}, {x=55,y=16} )
 	Mirial.Common.ToolTip(self.doneBox,-70,-20,"All locations found",142)
 	self.doneBox:SetEnabled( false )
 	self.doneBox.CheckedChanged = function( sender,args )
@@ -311,12 +314,12 @@ function DL_Window:Constructor()
 	end
 
 	-- Page type
-	AddField(self, Label, "Type:", {x=11,y=130}, {x=40,y=14} )
-	self.pageType = AddField(self, TextBox, "", {x=50,y=132}, {x=162,y=18} )
+	AddField(self, Label, "Type:", {x=20,y=130}, {x=75,y=14} )
+	self.pageType = AddField(self, TextBox, "", {x=00,y=132}, {x=200,y=18} )
 	self.pageType:SetFont( Turbine.UI.Lotro.Font.TrajanPro15 )
 
 	-- Nearest button
-	self.nearButton = AddField(self, Button, "Nearest", {x=215,y=131}, {x=66,y=15} )
+	self.nearButton = AddField(self, Button, "Nearest", {x=225,y=131}, {x=75,y=15} )
 	self.nearButton:SetEnabled( false )
 	local slot = Turbine.UI.Lotro.Quickslot()
 	slot:SetParent( self.nearButton )
@@ -327,11 +330,11 @@ function DL_Window:Constructor()
     slot:SetAllowDrop( false )
 
 	-- Page location
-	AddField(self, Label, "Loc:", {x=11,y=151}, {x=40,y=14} )
-	self.pageLoc = AddField(self, TextBox, "", {x=50,y=153}, {x=162,y=18} )
+	AddField(self, Label, "Loc:", {x=20,y=151}, {x=75,y=14} )
+	self.pageLoc = AddField(self, TextBox, "", {x=80,y=153}, {x=200,y=18} )
 	
 	-- Heading button
-	self.headButton = AddField(self, Button, "Heading", {x=215,y=152}, {x=68,y=15} )
+	self.headButton = AddField(self, Button, "Heading", {x=225,y=152}, {x=75,y=15} )
 	Mirial.Common.ToolTip(self.headButton,-40,-20,"Shift for Compass",123)
 	self.headButton:SetEnabled( false )
 	self.headButton.Click = function( sender,args )
@@ -347,10 +350,10 @@ function DL_Window:Constructor()
     slot:SetAllowDrop( false )
 
 	-- Page description
-	self.pageDesc = AddField(self, TextBox, "", {x=15,y=173}, {x=275,y=18} )
+	self.pageDesc = AddField(self, TextBox, "", {x=20,y=173}, {x=300,y=18} )
 
 	-- Create a List items button
-	self.itemsButton = AddField(self, Button, "List Items", {x=27,y=197}, {x=88,y=20} )
+	self.itemsButton = AddField(self, Button, "List Items", {x=30,y=197}, {x=90,y=20} )
 	Mirial.Common.ToolTip(self.itemsButton,0,-20,"Shift for not found",138)
 	self.itemsButton.Click = function( sender,args )
         local group = self.groupMenu:GetText()
@@ -386,7 +389,7 @@ function DL_Window:Constructor()
 	end
 
 	-- Create a N-S items button
-	self.nsButton = AddField(self, Button, "List N-S", {x=125,y=197}, {x=70,y=20} )
+	self.nsButton = AddField(self, Button, "List N-S", {x=140,y=197}, {x=90,y=20} )
 	self.nsButton.Click = function( sender,args )
         local group = self.groupMenu:GetText()
         local area = self.areaMenu:GetText()
@@ -394,7 +397,7 @@ function DL_Window:Constructor()
 	end
 
 	-- Create a E-W items button
-	self.ewButton = AddField(self, Button, "List E-W", {x=205,y=197}, {x=70,y=20} )
+	self.ewButton = AddField(self, Button, "List E-W", {x=250,y=197}, {x=90,y=20} )
 	self.ewButton.Click = function( sender,args )
         local group = self.groupMenu:GetText()
         local area = self.areaMenu:GetText()
@@ -402,7 +405,7 @@ function DL_Window:Constructor()
 	end
 
 	-- Save button
-	self.saveButton = AddField(self, Button, "Save Maps", {x=50,y=223}, {x=85,y=18} )
+	self.saveButton = AddField(self, Button, "Save Maps", {x=30,y=223}, {x=150,y=18} )
 	self.saveButton.Click = function( sender,args )
 		if #Map_set>0 then
 			DL_Checks.Saved = tCopy(Map_set)
@@ -412,7 +415,7 @@ function DL_Window:Constructor()
 	end
 
 	-- Restore button
-	self.restoreButton = AddField(self, Button, "Restore Maps", {x=145,y=223}, {x=105,y=18})
+	self.restoreButton = AddField(self, Button, "Restore Maps", {x=217,y=223}, {x=150,y=18})
 	self.restoreButton.Click = function( sender,args )
 		local S = DL_Checks.Saved
 		if S and #S>0 then
@@ -431,7 +434,7 @@ function DL_Window:Constructor()
 	end
 
 	-- Find button
-	self.findButton = AddField(self, Button, "Find what's here", {x=50,y=249}, {x=140,y=19})
+	self.findButton = AddField(self, Button, "Find what's here", {x=30,y=249}, {x=150,y=19})
 	Mirial.Common.ToolTip(self.findButton,0,-20,"Shift for Find Nearby",147)
 	local slot = Turbine.UI.Lotro.Quickslot()
 	slot:SetParent( self.findButton )
@@ -441,7 +444,7 @@ function DL_Window:Constructor()
     slot:SetAllowDrop( false )
 
 	-- Map button
-	self.mapButton = AddField(self, Button, "Map", {x=200,y=249}, {x=50,y=19} )
+	self.mapButton = AddField(self, Button, "Map", {x=217,y=249}, {x=150,y=19} )
 	Mirial.Common.ToolTip(self.mapButton,-20,-20,"Shift for 2nd map",120)
 	self.mapButton.skip = true
 	local slot = Turbine.UI.Lotro.Quickslot()
@@ -453,11 +456,11 @@ function DL_Window:Constructor()
 	self.mapButton.slot = slot
 
 	-- Map set
-	AddField(self, Label, "Map #", {x=25,y=275}, {x=40,y=14} )
-	self.mapSet = AddField(self, TextBox, "0/0", {x=69,y=275}, {x=33,y=18} )
+	AddField(self, Label, "Map #", {x=20,y=275}, {x=50,y=14} )
+	self.mapSet = AddField(self, TextBox, "0/0", {x=80,y=275}, {x=40,y=18} )
 	
 	-- Remove button
-	self.remButton = AddField(self, Button, "-", {x=107,y=275}, {x=10,y=19} )
+	self.remButton = AddField(self, Button, "-", {x=130,y=275}, {x=20,y=19} )
 	self.remButton.Click = function( sender,args )
 		local area = self.areaMenu:GetText()
 		if area=="" then printe("No area selected.") return end
@@ -471,7 +474,7 @@ function DL_Window:Constructor()
 	end
 	
 	-- Add button
-	self.addButton = AddField(self, Button, "+", {x=156,y=275}, {x=10,y=19} )
+	self.addButton = AddField(self, Button, "+", {x=180,y=275}, {x=50,y=19} )
 	self.addButton.Click = function( sender,args )
 		local area = self.areaMenu:GetText()
 		if area=="" then printe("No area selected.") return end
@@ -484,7 +487,7 @@ function DL_Window:Constructor()
 	end
 
 	-- Next button
-	self.nextButton = AddField(self, Button, "Next", {x=205,y=275}, {x=50,y=19} )
+	self.nextButton = AddField(self, Button, "Next", {x=250,y=275}, {x=75,y=19} )
 	Mirial.Common.ToolTip(self.nextButton,-30,-20,"Shift for Previous",123)
 	self.nextButton.Click = function( sender,args )
 		if #Map_set==0 then printe("No maps in set") return end
@@ -503,6 +506,19 @@ function DL_Window:Constructor()
 		end
 		print(w.." map selected.")
 	end
+		-- Waypoint button
+	self.wayButton = AddField(self, Button, "Waypoint", {x=295,y=152}, {x=75,y=15} )
+	self.wayButton:SetEnabled( false )
+	local loc,desc,r = DL_Page(pages, self.itemMenu:GetText())
+	self.pageLoc:SetText( loc )
+	local slot = Turbine.UI.Lotro.Quickslot()
+	local sloc = loc:gsub(",", " ")
+	slot:SetParent( self.wayButton )
+    slot:SetPosition( 0,0 )
+    slot:SetOpacity( 0 )
+    slot:SetSize( 70,15 )
+    slot:SetShortcut(Turbine.UI.Lotro.Shortcut( Alias, "/way target"..sloc ))
+    slot:SetAllowDrop( false )
 end
 DL_window = DL_Window()
 
