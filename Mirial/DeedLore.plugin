@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<Plugin>
+  <Information>
+	<Name>DeedLore</Name>
+	<Author>Mirial</Author>
+	<Version>1.0.0</Version>
+	<Image>Mirial/DeedLore/Book.tga</Image>
+	<Description>DeedLore contains lists of Deeds with locations.</Description>
+	<website>http://www.lotrointerface.com/downloads/info1172</website>
+  </Information>
+  <Package>Mirial.DeedLore.DL_Main</Package>
+  <Configuration Apartment="Mirial"/>
+</Plugin>

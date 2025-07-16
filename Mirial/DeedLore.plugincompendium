@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PluginConfig xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Id>9582</Id>
+  <Name>Deed Lore Reference</Name>
+  <Version>1.0.0</Version>
+  <Author>Mirial</Author>
+  <InfoUrl>http://www.lotrointerface.com/downloads/info1172</InfoUrl>
+  <DownloadUrl>http://www.lotrointerface.com/downloads/download1172</DownloadUrl>
+  <Descriptors>
+    <descriptor>Mirial\DeedLore.plugin</descriptor>
+  </Descriptors>
+  <Dependencies />
+</PluginConfig>
