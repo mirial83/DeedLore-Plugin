@@ -573,32 +573,38 @@ function DL_CWindow:AddBox(name,line)
 	local area = DL_window.areaMenu:GetText()
 	local pages = Lore[group][area].p
 	local loc = pages[line]
+	local text, coordText, descText
+	
+	    if type(loc)=='table' then
+        coordText = loc[1]
+        descText = ' '..(loc[2] or '')
+        if loc[3] then 
+            if descText:sub(-1)~=' ' then 
+                descText = '('..descText..'): '..loc[3]
+            else 
+                descText = descText:sub(1,-2)..': '..loc[3] 
+            end
+        end
+        -- Apply gold color to coordinates and white to description
+        text = "<rgb=#FFD700>"..coordText.."</rgb><rgb=#FFFFFF>"..descText.."</rgb>"
+    else
+        -- For non-table entries, just show the name with gold coordinates
+        local coordText = name:match("^(%d+%.%d[ns],%d+%.%d[ew])") or ""
+        local restText = name:sub(#coordText+1)
+        text = "<rgb=#FFD700>"..coordText.."</rgb><rgb=#FFFFFF>"..restText.."</rgb>"
+    end
 
-	local text
-	if type(loc)=='table' then
-		text = loc[1]..' '..(loc[2] or '')
-		if loc[3] then 
-			if text:sub(-1)~=' ' then 
-					text = '('..text..'): '..loc[3]
-			else 
-				text = text:loc[3] 
-			end
-		end
-	else
-		text = " #"..line..": "..name
-	end
-
-	box:SetText( text )
-	box:SetSize( #text*8+30, 20 )
-	box.name = name
-	box.line = line
-	box:SetChecked(DL_checked[line])
-	box.CheckedChanged = function( sender,args )
-		local v = sender:IsChecked()
-		local str = v and "Set" or "Cleared"
-		DL_checked[sender.line] = v or nil
-		print(str.." #"..line.." found." )
-	end
+    box:SetText( text )
+    box:SetSize( #text*8+30, 20 ) -- Note: #text counts markup tags, may need adjustment
+    box.name = name
+    box.line = line
+    box:SetChecked(DL_checked[line])
+    box.CheckedChanged = function( sender,args )
+        local v = sender:IsChecked()
+        local str = v and "Set" or "Cleared"
+        DL_checked[sender.line] = v or nil
+        print(str.." #"..line.." found." )
+    end
 	return box,#text
 end
 
