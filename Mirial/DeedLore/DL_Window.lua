@@ -54,25 +54,192 @@ function tCopy(t)
 	end
 	return nt
 end
+DL_CWindow = class( Turbine.UI.Lotro.Window )
+
+function DL_CWindow:AddBox(name, line)
+    local container = Turbine.UI.Control()
+    container:SetParent(self)
+    container:SetPosition(45, 15 + 25 * line)
+    container:SetSize(400, 25)
+    
+    -- Create checkbox
+    local checkbox = Turbine.UI.Lotro.CheckBox()
+    checkbox:SetParent(container)
+    checkbox:SetPosition(0, 2)
+    checkbox:SetSize(20, 20)
+    checkbox:SetChecked(DL_checked[line])
+    checkbox.CheckedChanged = function(sender, args)
+        DL_checked[line] = sender:IsChecked() or nil
+        print((sender:IsChecked() and "Set" or "Cleared").." #"..line.." found.")
+    end
+
+    -- Get location data
+    local group = DL_window.groupMenu:GetText()
+    local area = DL_window.areaMenu:GetText()
+    local loc = Lore[group][area].p[line]
+    
+    local coordText, descText = "", ""
+    if type(loc) == "table" then
+        coordText = loc[1] or ""
+        descText = loc[2] or ""
+        if loc[3] then
+            descText = descText..(descText:sub(-1) == " " and "" or " ")..loc[3]
+        end
+    else
+        coordText = loc:match("^(%d+%.%d[ns],%d+%.%d[ew])") or ""
+        descText = loc:sub(#coordText + 1)
+    end
+
+    -- Coordinate label (gold)
+    local coordLabel = Turbine.UI.Label()
+    coordLabel:SetParent(container)
+    coordLabel:SetPosition(25, 0)
+    coordLabel:SetSize(#coordText * 8, 20)
+    coordLabel:SetFont(textFont)
+    coordLabel:SetForeColor(Turbine.UI.Color(0.9, 0.9, 0))
+    coordLabel:SetText(coordText)
+
+    -- Description label (white) with truncation
+    local maxDescWidth = 400 - (25 + #coordText * 8 + 5)
+    local descLabel = Turbine.UI.Label()
+    descLabel:SetParent(container)
+    descLabel:SetPosition(25 + #coordText * 8 + 5, 0)
+    descLabel:SetSize(maxDescWidth, 20)
+    descLabel:SetFont(textFont)
+    descLabel:SetForeColor(Turbine.UI.Color(1, 1, 1))
+    
+    -- Truncate long descriptions with ellipsis
+    if #descText > 0 then
+        local truncated = descText
+        while descLabel:GetFont():MeasureString(truncated) > maxDescWidth and #truncated > 3 do
+            truncated = truncated:sub(1, -2)
+        end
+        if truncated ~= descText then
+            truncated = truncated:sub(1, -3).."..."
+        end
+        descLabel:SetText(truncated)
+    end
+
+    -- Make container clickable
+    container.MouseClick = function()
+        checkbox:SetChecked(not checkbox:IsChecked())
+    end
+
+    return container, #coordText + #descText
+end
+function DL_CWindow:Constructor(list)
+    Turbine.UI.Lotro.Window.Constructor(self)
+    self:SetText("Check List - "..DL_window.areaMenu:GetText())
+    
+    -- Calculate window size based on number of items
+    local itemHeight = 25
+    local windowHeight = math.min(50 + itemHeight * #list, 600)  -- Max height 600
+    local windowWidth = 450  -- Fixed width that fits most descriptions
+    
+    self:SetSize(windowWidth, windowHeight)
+    
+    -- Position window next to main window
+    local mainLeft, mainTop = DL_window:GetPosition()
+    self:SetPosition(mainLeft + DL_window:GetWidth() + 5, mainTop)
+
+    -- Create a scrollable panel
+    local scrollPanel = Turbine.UI.Control()
+    scrollPanel:SetParent(self)
+    scrollPanel:SetPosition(15, 40)
+    scrollPanel:SetSize(windowWidth - 30, windowHeight - 50)
+    
+    -- Create items in the scroll panel
+    for ix, locText in ipairs(list) do
+        local item = self:CreateCheckItem(ix, locText)
+        item:SetParent(scrollPanel)
+        item:SetPosition(0, (ix-1)*itemHeight)
+    end
+end
+
+function DL_CWindow:CreateCheckItem(index, text)
+    local item = Turbine.UI.Control()
+    item:SetSize(self:GetWidth() - 30, 25)
+    
+    -- Checkbox
+    local checkbox = Turbine.UI.Lotro.CheckBox()
+    checkbox:SetParent(item)
+    checkbox:SetPosition(0, 2)
+    checkbox:SetSize(20, 20)
+    checkbox:SetChecked(DL_checked[index])
+    checkbox.CheckedChanged = function(sender, args)
+        DL_checked[index] = sender:IsChecked() or nil
+    end
+    
+    -- Location text (coordinates in gold, description in white)
+    local coords, desc = text:match("^(%d+%.%d[ns],%d+%.%d[ew])(.*)$")
+    if not coords then
+        coords = ""
+        desc = text
+    end
+    
+    -- Coordinates label (gold)
+    local coordLabel = Turbine.UI.Label()
+    coordLabel:SetParent(item)
+    coordLabel:SetPosition(25, 0)
+    coordLabel:SetSize(#coords * 8, 20)
+    coordLabel:SetFont(textFont)
+    coordLabel:SetForeColor(Turbine.UI.Color(0.9, 0.9, 0))
+    coordLabel:SetText(coords)
+    
+    -- Description label (white)
+    local descLabel = Turbine.UI.Label()
+    descLabel:SetParent(item)
+    descLabel:SetPosition(25 + #coords * 8 + 5, 0)
+    descLabel:SetSize(400 - (25 + #coords * 8 + 5), 20)
+    descLabel:SetFont(textFont)
+    descLabel:SetForeColor(Turbine.UI.Color(1, 1, 1))
+    descLabel:SetText(desc:gsub("^%s*", ""))  -- Trim leading whitespace
+    
+    -- Make entire line clickable
+    item.MouseClick = function()
+        checkbox:SetChecked(not checkbox:IsChecked())
+    end
+    
+    return item
+end
 
 function DL_Clist()
-	local group = DL_window.groupMenu:GetText()
-	local area = DL_window.areaMenu:GetText()
-	local pages = Lore[group][area]
-	local list = {}
-	local lbl = DL_window:IsShiftKeyDown() and 2 or 1
-	for ix,loc in ipairs(pages.p) do
-		if type(loc)=='table' then
-			loc = loc[lbl] 
-		end
-		list[ix] = loc
-	end
-	if not DL_Checks[group] then DL_Checks[group] = {} end
-	local DL_group = DL_Checks[group]
-	if not DL_group[area] then DL_group[area] = {} end
-	DL_checked = DL_group[area]
-	DL_Cwindow = DL_CWindow(list)
-	DL_Cwindow:SetVisible( true )
+    local group = DL_window.groupMenu:GetText()
+    local area = DL_window.areaMenu:GetText()
+    if group == "" or area == "" then
+        printe("Please select both a group and an area first")
+        return
+    end
+
+    local pages = Lore[group][area].p
+    local list = {}
+    
+    -- Build the list of locations
+    for ix, loc in ipairs(pages) do
+        if type(loc) == 'table' then
+            -- Combine all parts of the location description
+            local entry = loc[1]  -- coordinates
+            if loc[2] then entry = entry .. " " .. loc[2] end  -- primary description
+            if loc[3] then entry = entry .. ": " .. loc[3] end  -- secondary description
+            list[ix] = entry
+        else
+            list[ix] = loc  -- just coordinates
+        end
+    end
+
+    -- Load or create checked status
+    if not DL_Checks[group] then DL_Checks[group] = {} end
+    if not DL_Checks[group][area] then DL_Checks[group][area] = {} end
+    DL_checked = DL_Checks[group][area]
+
+    -- Close existing window if open
+    if DL_Cwindow and DL_Cwindow:IsVisible() then
+        DL_Cwindow:Close()
+    end
+
+    -- Create and show new window
+    DL_Cwindow = DL_CWindow(list)
+    DL_Cwindow:SetVisible(true)
 end
 
 function DL_Area()
@@ -282,10 +449,10 @@ function DL_Window:Constructor()
 	self.checkButton = AddField(self, Button, "Check List", {x=170,y=101}, {x=85,y=20} )
 	-- Mirial.Common.ToolTip(self.checkButton,0,-20,"Shift for name list",123)
 	self.checkButton:SetEnabled( false )
-	--[[ self.checkButton.Click = function( sender,args )
+	self.checkButton.Click = function( sender,args )
 		print("Opening Check List window")
 		DL_Clist()
-	end ]]
+	end 
 
 	-- Done check box
 	self.doneBox = AddField(self, CheckBox, "Done", {x=250,y=103}, {x=55,y=16} )
@@ -557,84 +724,6 @@ function DL_Window:Constructor()
 	end
 end
 DL_window = DL_Window()
-
--- Define checklist window
-DL_CWindow = class( Turbine.UI.Lotro.Window )
-
-function DL_CWindow:AddBox(name,line)
-	local box = CheckBox()
-	box:SetParent( self )
-	box:SetForeColor( foreColor )
-	box:SetPosition( 45,15+20*line )
-	box:SetTextAlignment( Left )
-	box:SetFont( textFont )
-	--Get the full description from the pages table
-	local group = DL_window.groupMenu:GetText()
-	local area = DL_window.areaMenu:GetText()
-	local pages = Lore[group][area].p
-	local loc = pages[line]
-	local text, coordText, descText
-	
-	    if type(loc)=='table' then
-        coordText = loc[1]
-        descText = ' '..(loc[2] or '')
-        if loc[3] then 
-            if descText:sub(-1)~=' ' then 
-                descText = '('..descText..'): '..loc[3]
-            else 
-                descText = descText:sub(1,-2)..': '..loc[3] 
-            end
-        end
-        -- Apply gold color to coordinates and white to description
-        text = "<rgb=#FFD700>"..coordText.."</rgb><rgb=#FFFFFF>"..descText.."</rgb>"
-    else
-        -- For non-table entries, just show the name with gold coordinates
-        local coordText = name:match("^(%d+%.%d[ns],%d+%.%d[ew])") or ""
-        local restText = name:sub(#coordText+1)
-        text = "<rgb=#FFD700>"..coordText.."</rgb><rgb=#FFFFFF>"..restText.."</rgb>"
-    end
-
-    box:SetText( text )
-    box:SetSize( #text*8+30, 20 ) -- Note: #text counts markup tags, may need adjustment
-    box.name = name
-    box.line = line
-    box:SetChecked(DL_checked[line])
-    box.CheckedChanged = function( sender,args )
-        local v = sender:IsChecked()
-        local str = v and "Set" or "Cleared"
-        DL_checked[sender.line] = v or nil
-        print(str.." #"..line.." found." )
-    end
-	return box,#text
-end
-
-function DL_CWindow:Constructor(list)
-	Turbine.UI.Lotro.Window.Constructor( self )
-	self:SetText( "Check List" )
-
-	if list then
-		self.box = {}
-		local maxw = 0
-
-		-- Create checkboxes and add them to the window.
-		for ix,name in ipairs(list) do
-			local box,w = self:AddBox(name,ix)
-			self.box[ix] = box
-			if w>maxw then maxw = w end
-		end
-		for ix,name in ipairs(list) do
-			self.box[ix] = self:AddBox(name,ix)
-		end
-		local vsize = 50+20*#list
-		self:SetSize(math.min(maxw*7+100, 600), vsize )
-		-- Position the window on left edge, aligned with the main window.
-		local top = DL_window:GetTop()
-		local height = DL_window:GetHeight()
-		if vsize>height then top = top-vsize+height end
-		if top<0 then top = 0 end
-		self:SetPosition( 0,top )
-	end
-end
 
 DL_Compass = class( Turbine.UI.Window )
 
