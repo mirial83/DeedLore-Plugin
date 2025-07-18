@@ -278,14 +278,14 @@ function DL_Window:Constructor()
 		else printe("Select a deed.") end
 	end
 
-	-- Create an Check List button
+	-- Create a Check List button
 	self.checkButton = AddField(self, Button, "Check List", {x=170,y=101}, {x=85,y=20} )
-	Mirial.Common.ToolTip(self.checkButton,0,-20,"Shift for name list",123)
+	-- Mirial.Common.ToolTip(self.checkButton,0,-20,"Shift for name list",123)
 	self.checkButton:SetEnabled( false )
-	self.checkButton.Click = function( sender,args )
+	--[[ self.checkButton.Click = function( sender,args )
 		print("Opening Check List window")
 		DL_Clist()
-	end
+	end ]]
 
 	-- Done check box
 	self.doneBox = AddField(self, CheckBox, "Done", {x=250,y=103}, {x=55,y=16} )
@@ -432,7 +432,7 @@ function DL_Window:Constructor()
 
 	-- Find button
 	self.findButton = AddField(self, Button, "Find what's here", {x=30,y=249}, {x=150,y=19})
-	Mirial.Common.ToolTip(self.findButton,0,-20,"Shift for Find Nearby",147)
+	-- Mirial.Common.ToolTip(self.findButton,0,-20,"Shift for Find Nearby",147)
 	local slot = Turbine.UI.Lotro.Quickslot()
 	slot:SetParent( self.findButton )
     slot:SetPosition( 1,1 )
@@ -568,7 +568,26 @@ function DL_CWindow:AddBox(name,line)
 	box:SetPosition( 45,15+20*line )
 	box:SetTextAlignment( Left )
 	box:SetFont( textFont )
-	local text = " #"..line..": "..name
+	--Get the full description from the pages table
+	local group = DL_window.groupMenu:GetText()
+	local area = DL_window.areaMenu:GetText()
+	local pages = Lore[group][area].p
+	local loc = pages[line]
+
+	local text
+	if type(loc)=='table' then
+		text = loc[1]..' '..(loc[2] or '')
+		if loc[3] then 
+			if text:sub(-1)~=' ' then 
+					text = '('..text..'): '..loc[3]
+			else 
+				text = text:loc[3] 
+			end
+		end
+	else
+		text = " #"..line..": "..name
+	end
+
 	box:SetText( text )
 	box:SetSize( #text*8+30, 20 )
 	box.name = name
@@ -597,8 +616,11 @@ function DL_CWindow:Constructor(list)
 			self.box[ix] = box
 			if w>maxw then maxw = w end
 		end
+		for ix,name in ipairs(list) do
+			self.box[ix] = self:AddBox(name,ix)
+		end
 		local vsize = 50+20*#list
-		self:SetSize( maxw*7+100,vsize )
+		self:SetSize(math.min(maxw*7+100, 600), vsize )
 		-- Position the window on left edge, aligned with the main window.
 		local top = DL_window:GetTop()
 		local height = DL_window:GetHeight()
