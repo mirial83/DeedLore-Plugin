@@ -506,12 +506,54 @@ function DL_Window:Constructor()
 	-- Waypoint button
 	self.wayButton = AddField(self, Button, "Waypoint", {x=295,y=275}, {x=75,y=19})
 	self.wayButton.Click = function(sender, args)
-	    local loc = self.pageLoc:GetText()
-    	if #loc > 0 then
-        	DL_way:SetShortcut(Turbine.UI.Lotro.Shortcut(Alias, "/way target "..loc))
-        	DL_way:SetVisible(true)
-			DL_way:SetVisible(false) -- Hide after setting
-    	end
+		local loc = self.pageLoc:GetText()
+		if #loc < 1 then
+			printe("No location set in location box")
+			return
+		end
+		
+		if not (WaypointInstalled and WaypointRunning) then
+			printe("Waypoint plugin not available")
+			return
+		end
+		
+		-- Function to execute commands with a small delay between them
+		local function executeWaypointCommands()
+			-- First command: clear existing waypoint
+			DL_way:SetShortcut(Turbine.UI.Lotro.Shortcut(Alias, "/way clear"))
+			DL_way:SetVisible(true)
+			
+			-- Schedule the second command (set new waypoint) after a small delay
+			local delayCounter = 0
+			local delayTimer = Turbine.UI.Control()
+			delayTimer.Update = function(sender, args)
+				delayCounter = delayCounter + args.DeltaTime
+				if delayCounter > 0.1 then  -- 0.1 second delay
+					delayTimer:SetWantsUpdates(false)
+					-- Format location (replace comma with space)
+					local waypointLoc = loc:gsub(",", " ")
+					DL_way:SetShortcut(Turbine.UI.Lotro.Shortcut(Alias, "/way target "..waypointLoc))
+					DL_way:SetVisible(true)
+					-- Print confirmation message (using your existing print function)
+					print("Waypoint set to: "..waypointLoc)                
+					-- Hide the quickslot after another small delay
+					local hideCounter = 0
+					local hideTimer = Turbine.UI.Control()
+					hideTimer.Update = function(sender, args)
+						hideCounter = hideCounter + args.DeltaTime
+						if hideCounter > 0.1 then  -- 0.1 second delay
+							hideTimer:SetWantsUpdates(false)
+							DL_way:SetVisible(false)
+						end
+					end
+					hideTimer:SetWantsUpdates(true)
+				end
+			end
+			delayTimer:SetWantsUpdates(true)
+		end
+		
+		-- Actually execute the commands
+		executeWaypointCommands()
 	end
 end
 DL_window = DL_Window()

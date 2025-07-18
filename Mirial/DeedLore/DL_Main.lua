@@ -11,27 +11,29 @@ function printh(text) print("<rgb=#00FF00>"..text.."</rgb>") end
 function printe(text) print("<rgb=#FF6040>Error: "..text.."</rgb>") end
 
 -- check for Waypoint
-					local tmpPlugins=Turbine.PluginManager.GetAvailablePlugins();
-					local pluginIndex;
-					for pluginIndex=1,#tmpPlugins do
-						if tmpPlugins[pluginIndex].Name=="Waypoint" then
-							WaypointInstalled=true;
-							break;
-						end
-					end
-					if WaypointInstalled then
-						tmpPlugins=Turbine.PluginManager.GetLoadedPlugins();
-						for pluginIndex=1,#tmpPlugins do
-							if tmpPlugins[pluginIndex].Name=="Waypoint" then
-								WaypointRunning=true;
-								break;
-							end
-						end
-							if (not WaypointRunning) then
-							Turbine.PluginManager.LoadPlugin("Waypoint");
-							WaypointRunning=true;
-						end
-					end
+WaypointInstalled = false
+WaypointRunning = false
+local tmpPlugins = Turbine.PluginManager.GetAvailablePlugins()
+local pluginIndex
+for pluginIndex = 1, #tmpPlugins do
+	if tmpPlugins[pluginIndex].Name == "Waypoint" then
+		WaypointInstalled = true
+		break
+	end
+end
+if WaypointInstalled then
+	tmpPlugins = Turbine.PluginManager.GetLoadedPlugins()
+	for pluginIndex = 1, #tmpPlugins do
+		if tmpPlugins[pluginIndex].Name == "Waypoint" then
+			WaypointRunning = true
+			break
+		end
+	end
+	if not WaypointRunning then
+		Turbine.PluginManager.LoadPlugin("Waypoint")
+		WaypointRunning = true
+	end
+end
 
 local lPat = "You are on %a* server "
 local locPat = "You are on %a* server %d* at r(%d) lx%d+ ly%d+ ox.-%d+%.?%d* oy.-%d+%.?%d* oz(.-%d+%.?%d*)"
