@@ -133,7 +133,8 @@ function DL_CWindow:Constructor(list)
     
     -- Calculate window size based on number of items
     local itemHeight = 25
-    local windowHeight = math.min(50 + itemHeight * #list, 600)  -- Max height 600
+	local contentHeight = itemHeight * #list
+    local windowHeight = math.min(50 + ContentHeight, 650)  -- Max height 600
     local windowWidth = 450  -- Fixed width that fits most descriptions
     
     self:SetSize(windowWidth, windowHeight)
@@ -143,16 +144,43 @@ function DL_CWindow:Constructor(list)
     self:SetPosition(mainLeft + DL_window:GetWidth() + 5, mainTop)
 
     -- Create a scrollable panel
-    local scrollPanel = Turbine.UI.Control()
-    scrollPanel:SetParent(self)
-    scrollPanel:SetPosition(15, 40)
-    scrollPanel:SetSize(windowWidth - 30, windowHeight - 50)
-    
-    -- Create items in the scroll panel
+    local scrollBar
+    if contentHeight > (windowHeight - 50) then
+        scrollBar = Turbine.UI.Lotro.ScrollBar()
+        scrollBar:SetParent(scrollContainer)
+        scrollBar:SetOrientation(Turbine.UI.Orientation.Vertical)
+        scrollBar:SetPosition(scrollContainer:GetWidth() - 15, 0)
+        scrollBar:SetSize(15, scrollContainer:GetHeight())
+        scrollBar:SetMinimum(0)
+        scrollBar:SetMaximum(contentHeight - (windowHeight - 50))
+        scrollBar:SetSmallChange(25)
+        scrollBar:SetLargeChange(100)
+    end
+    -- Create a content panel that will hold all items
+    local contentPanel = Turbine.UI.Control()
+    contentPanel:SetParent(scrollContainer)
+    contentPanel:SetPosition(0, 0)
+    contentPanel:SetSize(scrollContainer:GetWidth() - (scrollBar and 15 or 0), contentHeight)
+    -- Create items in the content panel
     for ix, locText in ipairs(list) do
         local item = self:CreateCheckItem(ix, locText)
-        item:SetParent(scrollPanel)
+        item:SetParent(contentPanel)
         item:SetPosition(0, (ix-1)*itemHeight)
+    end
+    
+    -- Set up scrolling if needed
+    if scrollBar then
+        scrollBar.ValueChanged = function(sender, args)
+            contentPanel:SetTop(-scrollBar:GetValue())
+        end
+        
+        -- Enable mouse wheel scrolling
+        scrollContainer.MouseWheel = function(sender, args)
+            local newValue = scrollBar:GetValue() - (args.WheelDelta * 25)
+            if newValue < 0 then newValue = 0 end
+            if newValue > scrollBar:GetMaximum() then newValue = scrollBar:GetMaximum() end
+            scrollBar:SetValue(newValue)
+        end
     end
 end
 
